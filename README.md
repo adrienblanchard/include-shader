@@ -1,6 +1,6 @@
 # include-shader
 
-A Rust macro for including shader files as string with [dependencies]() support.
+A Rust macro for including shader files as string with [dependencies](https://docs.rs/include-shader/latest/include_shader/macro.include_shader.html#dependencies) support.
 
 ## Setup
 
@@ -44,7 +44,7 @@ fn main() {
 
 ## Documentation
 
-For more details on how to use this macro, see the [documentation (docs.rs)]().
+For more details on how to use this macro, see the [documentation (docs.rs)](https://docs.rs/include-shader/latest/include_shader/macro.include_shader.html).
 
 ## License
 
