@@ -1,6 +1,6 @@
 [package]
 name = "include-shader"
-version = "0.1.0"
+version = "0.1.1"
 license= "MIT OR Apache-2.0"
 description = "A macro for including shader files as string with dependencies support."
 keywords = ["include", "assets", "shader", "glsl", "hlsl"]
