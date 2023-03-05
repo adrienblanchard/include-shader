@@ -10,8 +10,12 @@
 //! **`nightly`** - Enables nightly APIs like
 //! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
 //! for shader files tracking.
+//! 
+//! **`relative-path`** - Causes the macro to resolve files relative to the file in which they are included.
+//! This mirrors the behavior of [`include_str`](https://doc.rust-lang.org/std/macro.include_str.html).
 
 #![cfg_attr(feature = "nightly", feature(track_path))]
+#![cfg_attr(feature = "relative-path", feature(proc_macro_span))]
 
 mod dependency_graph;
 
@@ -22,8 +26,19 @@ use regex::Regex;
 use std::fs::{canonicalize, read_to_string};
 use std::path::{Path, PathBuf};
 
-fn resolve_path(path: &str) -> PathBuf {
-    canonicalize(&path).unwrap_or_else(|e| {
+fn resolve_path(path: &str, relative: Option<&Path>) -> PathBuf {
+    if let Some(file) = relative {
+        let p = Path::new(path);
+        if p.has_root() {
+            canonicalize(p.iter().skip(1).collect::<PathBuf>())
+        }
+        else {
+            canonicalize(file.join(p))
+        }
+    }
+    else {
+        canonicalize(path)
+    }.unwrap_or_else(|e| {
         panic!(
             "An error occured while trying to resolve path: {:?}. Error: {}",
             path, e
@@ -62,7 +77,16 @@ fn process_includes(
 
     while let Some(captures) = INCLUDE_RE.captures(&result.clone()) {
         let capture = captures.get(0).unwrap();
-        let include_path = resolve_path(captures.name("file").unwrap().as_str());
+
+        let include_path;
+        #[cfg(feature = "relative-path")] {
+            let mut source_dir = source_path.to_path_buf();
+            source_dir.pop();
+            include_path = resolve_path(captures.name("file").unwrap().as_str(), Some(&source_dir));
+        }
+        #[cfg(not(feature = "relative-path"))] {
+            include_path = resolve_path(captures.name("file").unwrap().as_str(), None);
+        }
 
         dependency_graph.add_edge(
             source_path.to_string_lossy().to_string(),
@@ -93,7 +117,9 @@ fn unwrap_string_literal(lit: &Literal) -> String {
 
 /// Includes a shader file as a string with dependencies support.
 ///
-/// The file is located relative to the workspace root directory.
+/// By default, the file is located relative to the workspace root directory.
+/// If the `relative-path` feature is enabled, then file resolution happens relative
+/// to the current module or shader file instead.
 ///
 /// # Panics
 ///
@@ -149,7 +175,18 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
         [TokenTree::Literal(lit)] => unwrap_string_literal(lit),
         _ => panic!("Takes 1 argument and the argument must be a string literal"),
     };
-    let root_path = resolve_path(&arg);
+
+    let root_path;
+    
+    #[cfg(feature = "relative-path")] {
+        let mut file_path = proc_macro::Span::call_site().source_file().path();
+        file_path.pop();
+        root_path = resolve_path(&arg, Some(&file_path));
+    }
+    #[cfg(not(feature = "relative-path"))] {
+        root_path = resolve_path(&arg, None);
+    }
+
     let mut dependency_graph = DependencyGraph::new();
     let result = process_file(&root_path, &mut dependency_graph);
 
