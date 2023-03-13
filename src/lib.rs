@@ -12,7 +12,6 @@
 //! for shader files tracking.
 //! 
 //! **`relative-path`** - Causes the macro to resolve files relative to the file in which they are included.
-//! This mirrors the behavior of [`include_str`](https://doc.rust-lang.org/std/macro.include_str.html).
 
 #![cfg_attr(feature = "nightly", feature(track_path))]
 #![cfg_attr(feature = "relative-path", feature(proc_macro_span))]
@@ -78,15 +77,16 @@ fn process_includes(
     while let Some(captures) = INCLUDE_RE.captures(&result.clone()) {
         let capture = captures.get(0).unwrap();
 
-        let include_path;
+        #[allow(unused_assignments)]
+        let mut include_parent_dir_path = None;
+        
         #[cfg(feature = "relative-path")] {
-            let mut source_dir = source_path.to_path_buf();
-            source_dir.pop();
-            include_path = resolve_path(captures.name("file").unwrap().as_str(), Some(&source_dir));
+            let mut path = source_path.to_path_buf();
+            path.pop();
+            include_parent_dir_path = Some(path);
         }
-        #[cfg(not(feature = "relative-path"))] {
-            include_path = resolve_path(captures.name("file").unwrap().as_str(), None);
-        }
+        
+        let include_path = resolve_path(captures.name("file").unwrap().as_str(), include_parent_dir_path);
 
         dependency_graph.add_edge(
             source_path.to_string_lossy().to_string(),
@@ -176,16 +176,16 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
         _ => panic!("Takes 1 argument and the argument must be a string literal"),
     };
 
-    let root_path;
+    #[allow(unused_assignments)]
+    let mut call_parent_dir_path = None;
     
     #[cfg(feature = "relative-path")] {
-        let mut file_path = proc_macro::Span::call_site().source_file().path();
-        file_path.pop();
-        root_path = resolve_path(&arg, Some(&file_path));
+        let mut path = proc_macro::Span::call_site().source_file().path();
+        path.pop();
+        call_parent_dir_path = Some(path);
     }
-    #[cfg(not(feature = "relative-path"))] {
-        root_path = resolve_path(&arg, None);
-    }
+
+    let root_path = resolve_path(&arg, call_parent_dir_path);
 
     let mut dependency_graph = DependencyGraph::new();
     let result = process_file(&root_path, &mut dependency_graph);
