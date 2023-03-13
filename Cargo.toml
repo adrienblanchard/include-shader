@@ -18,4 +18,4 @@ lazy_static = "1.4.0"
 
 [features]
 nightly = []
-relative-path = [ "nightly" ]
+relative-path = []
