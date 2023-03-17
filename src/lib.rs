@@ -25,19 +25,22 @@ use regex::Regex;
 use std::fs::{canonicalize, read_to_string};
 use std::path::{Path, PathBuf};
 
-fn resolve_path(path: &str, relative: Option<&Path>) -> PathBuf {
-    if let Some(file) = relative {
-        let p = Path::new(path);
-        if p.has_root() {
-            canonicalize(p.iter().skip(1).collect::<PathBuf>())
-        }
-        else {
-            canonicalize(file.join(p))
+fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
+    let mut path = PathBuf::from(path);
+
+    if let Some(p) = parent_dir_path {
+        if !path.is_absolute() {
+            path = p.join(path);
         }
     }
-    else {
-        canonicalize(path)
-    }.unwrap_or_else(|e| {
+
+    canonicalize(&path).unwrap_or_else(|e| {
+        panic!(
+            "An error occured while trying to resolve path: {:?}. Error: {}",
+            path, e
+        )
+    })
+}
         panic!(
             "An error occured while trying to resolve path: {:?}. Error: {}",
             path, e
