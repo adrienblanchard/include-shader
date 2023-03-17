@@ -41,12 +41,6 @@ fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
         )
     })
 }
-        panic!(
-            "An error occured while trying to resolve path: {:?}. Error: {}",
-            path, e
-        )
-    })
-}
 
 fn track_file(_path: &Path) {
     #[cfg(feature = "nightly")]
