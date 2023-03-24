@@ -57,7 +57,7 @@ fn process_file(path: &Path, dependency_graph: &mut DependencyGraph) -> String {
     });
 
     track_file(path);
-
+    
     process_includes(path, content, dependency_graph)
 }
 
@@ -74,7 +74,7 @@ fn process_includes(
     while let Some(captures) = INCLUDE_RE.captures(&result.clone()) {
         let capture = captures.get(0).unwrap();
 
-        #[allow(unused_assignments)]
+        #[allow(unused_assignments, unused_mut)]
         let mut include_parent_dir_path = None;
         
         #[cfg(feature = "relative-path")] {
@@ -173,9 +173,9 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
         _ => panic!("Takes 1 argument and the argument must be a string literal"),
     };
 
-    #[allow(unused_assignments)]
+    #[allow(unused_assignments, unused_mut)]
     let mut call_parent_dir_path = None;
-    
+
     #[cfg(feature = "relative-path")] {
         let mut path = proc_macro::Span::call_site().source_file().path();
         path.pop();
@@ -183,7 +183,6 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
     }
 
     let root_path = resolve_path(&arg, call_parent_dir_path);
-
     let mut dependency_graph = DependencyGraph::new();
     let result = process_file(&root_path, &mut dependency_graph);
 
