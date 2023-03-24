@@ -45,8 +45,8 @@ impl DependencyGraph {
     /// Returns the first back edge found in the `DependencyGraph` using DFS.
     /// If no back edge exists, then `None` is returned.
     fn find_back_edge(&self) -> Option<(String, String)> {
-        let mut discovered: HashSet<String> = HashSet::new();
-        let mut finished: HashSet<String> = HashSet::new();
+        let mut discovered = HashSet::new();
+        let mut finished = HashSet::new();
 
         for vertex in self.graph.keys() {
             if discovered.contains(vertex) && finished.contains(vertex) {
@@ -94,9 +94,9 @@ impl DependencyGraph {
     /// Returns the predecessors of the shortest path using BFS.
     /// The predecessors can then be used to reconstruct the path.
     fn find_shortest_path(&self, start: String, end: String) -> Option<HashMap<String, String>> {
-        let mut queue: VecDeque<String> = VecDeque::from([start.clone()]);
-        let mut visited: HashSet<String> = HashSet::from([start]);
-        let mut predecessors: HashMap<String, String> = HashMap::new();
+        let mut queue = VecDeque::from([start.clone()]);
+        let mut visited = HashSet::from([start]);
+        let mut predecessors = HashMap::new();
 
         while !queue.is_empty() {
             let vertex = queue.pop_front().unwrap();
@@ -132,7 +132,7 @@ impl DependencyGraph {
         end: String,
         predecessors: HashMap<String, String>,
     ) -> Vec<String> {
-        let mut path: Vec<String> = Vec::from([end.clone()]);
+        let mut path = Vec::from([end.clone()]);
         let mut crawl = end;
 
         while let Some(predecessor) = predecessors.get(&crawl) {
