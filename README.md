@@ -4,17 +4,21 @@ A Rust macro for including shader files as string with [dependencies](https://do
 
 ## Setup
 
-Although this library works on `stable`, your shader files changes might not be detected because of caching. Therefore, until [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html) API stabilizes, it is recommended to use `nightly` so your shader files are tracked.
+Although this library works on `stable`, detection of shader file changes is not guaranteed due to caching. Therefore, it is recommended to use `nightly` 
+along with the `track-path` feature enabled until the [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html) API stabilizes.
 
-### Nightly toolchain
+### Nightly toolchain (recommended)
 
-For the best experience (shader files tracking), `nightly` is required.
+For the best experience, use `nightly` to gain access to extra [features](https://docs.rs/include-shader/latest/include_shader/index.html#optional-features):
+
+- File tracking
+- Relative path resolution
 
 Add the following to your `Cargo.toml` manifest file:
 
 ```toml
 [dependencies]
-include-shader = { version = "0.1.1", features = ["nightly"] }
+include-shader = { version = "0.1.1", features = ["track-file", "relative-path"] }
 ```
 
 ### Stable toolchain
@@ -44,7 +48,7 @@ fn main() {
 
 ## Documentation
 
-For more details on how to use this macro, see the [documentation (docs.rs)](https://docs.rs/include-shader/latest/include_shader/macro.include_shader.html).
+For more details on how to use this macro, see the [documentation](https://docs.rs/include-shader/latest/include_shader/macro.include_shader.html).
 
 ## License
 
