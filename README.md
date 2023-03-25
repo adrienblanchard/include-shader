@@ -18,7 +18,7 @@ Add the following to your `Cargo.toml` manifest file:
 
 ```toml
 [dependencies]
-include-shader = { version = "0.1.1", features = ["track-file", "relative-path"] }
+include-shader = { version = "0.2.0", features = ["track-file", "relative-path"] }
 ```
 
 ### Stable toolchain
@@ -27,7 +27,7 @@ Add the following to your `Cargo.toml` manifest file:
 
 ```toml
 [dependencies]
-include-shader = "0.1.1"
+include-shader = "0.2.0"
 ```
 
 ## Example
