@@ -2,7 +2,7 @@
 //!
 //! Although this library works on `stable`, your shader files changes might not be detected because
 //! of caching. Therefore, until
-//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
+//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html) 
 //! API stabilizes, it is recommended to use the `nightly` toolchain and feature flag
 //! so your shader files are tracked.
 //!
@@ -13,7 +13,7 @@
 //! 
 //! **`relative-path`** - Causes the macro to resolve files relative to the file in which they are included.
 
-#![cfg_attr(feature = "nightly", feature(track_path))]
+#![cfg_attr(feature = "track-path", feature(track_path))]
 #![cfg_attr(feature = "relative-path", feature(proc_macro_span))]
 
 mod dependency_graph;
@@ -43,7 +43,7 @@ fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
 }
 
 fn track_file(_path: &Path) {
-    #[cfg(feature = "nightly")]
+    #[cfg(feature = "track-path")]
     proc_macro::tracked_path::path(_path.to_string_lossy());
 }
 
