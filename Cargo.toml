@@ -1,6 +1,6 @@
 [package]
 name = "include-shader"
-version = "0.1.1"
+version = "0.2.0"
 license= "MIT OR Apache-2.0"
 description = "A macro for including shader files as string with dependencies support."
 keywords = ["include", "assets", "shader", "glsl", "hlsl"]
@@ -17,4 +17,6 @@ regex = "1"
 lazy_static = "1.4.0"
 
 [features]
-nightly = []
+nightly = ["track-path"] # deprecated as of v0.2.0 in favor of standalone features
+relative-path = []
+track-path = []

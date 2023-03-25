@@ -1,17 +1,21 @@
 //! A library to help working with shaders.
 //!
-//! Although this library works on `stable`, your shader files changes might not be detected because
-//! of caching. Therefore, until
+//! Although this library works on `stable`, detection of shader file changes is not
+//! guaranteed due to caching. Therefore, it is recommended to use `nightly` along with
+//! the `track-path` feature enabled until the
 //! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
-//! API stabilizes, it is recommended to use the `nightly` toolchain and feature flag
-//! so your shader files are tracked.
+//! API stabilizes.
 //!
 //! ## Optional features
-//! **`nightly`** - Enables nightly APIs like
-//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
-//! for shader files tracking.
+//! **`relative-path`** - Resolves path relative to the current file instead of relative
+//! to the workspace root directory.
+//!
+//! **`track-path`** - Enables
+//! [`file tracking`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
+//! to ensure detection of shader file changes.
 
-#![cfg_attr(feature = "nightly", feature(track_path))]
+#![cfg_attr(feature = "track-path", feature(track_path))]
+#![cfg_attr(feature = "relative-path", feature(proc_macro_span))]
 
 mod dependency_graph;
 
@@ -20,19 +24,21 @@ use lazy_static::lazy_static;
 use proc_macro::{Literal, TokenStream, TokenTree};
 use regex::Regex;
 use std::fs::{canonicalize, read_to_string};
+use std::io;
 use std::path::{Path, PathBuf};
 
-fn resolve_path(path: &str) -> PathBuf {
-    canonicalize(&path).unwrap_or_else(|e| {
-        panic!(
-            "An error occured while trying to resolve path: {:?}. Error: {}",
-            path, e
-        )
-    })
+fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> io::Result<PathBuf> {
+    let mut path = PathBuf::from(path);
+    if let Some(p) = parent_dir_path {
+        if !path.is_absolute() {
+            path = p.join(path);
+        }
+    }
+    canonicalize(&path)
 }
 
 fn track_file(_path: &Path) {
-    #[cfg(feature = "nightly")]
+    #[cfg(feature = "track-path")]
     proc_macro::tracked_path::path(_path.to_string_lossy());
 }
 
@@ -44,9 +50,7 @@ fn process_file(path: &Path, dependency_graph: &mut DependencyGraph) -> String {
             e
         )
     });
-
     track_file(path);
-
     process_includes(path, content, dependency_graph)
 }
 
@@ -62,7 +66,28 @@ fn process_includes(
 
     while let Some(captures) = INCLUDE_RE.captures(&result.clone()) {
         let capture = captures.get(0).unwrap();
-        let include_path = resolve_path(captures.name("file").unwrap().as_str());
+        let file_path = captures.name("file").unwrap().as_str();
+
+        #[allow(unused_assignments, unused_mut)]
+        let mut include_parent_dir_path = None;
+
+        #[cfg(feature = "relative-path")]
+        {
+            let mut path = source_path.to_path_buf();
+            path.pop();
+            include_parent_dir_path = Some(path);
+        }
+
+        let include_path = match resolve_path(&file_path, include_parent_dir_path) {
+            Ok(path) => path,
+            Err(e) => {
+                panic!(
+                    r#"An error occured while trying to resolve a dependency path: "{}". Error: {}"#,
+                    &file_path,
+                    e
+                )
+            }
+        };
 
         dependency_graph.add_edge(
             source_path.to_string_lossy().to_string(),
@@ -82,18 +107,29 @@ fn process_includes(
     result
 }
 
-fn unwrap_string_literal(lit: &Literal) -> String {
-    let mut repr = lit.to_string();
+fn expr_to_string(expr: &Literal) -> Option<String> {
+    let mut expr = expr.to_string();
+    if !expr.starts_with(r#"""#) || !expr.ends_with(r#"""#) {
+        return None;
+    }
+    expr.remove(0);
+    expr.pop();
+    Some(expr)
+}
 
-    repr.remove(0);
-    repr.pop();
-
-    repr
+fn get_single_string_from_token_stream(token_stream: TokenStream) -> Option<String> {
+    let tokens: Vec<_> = token_stream.into_iter().collect();
+    match tokens.as_slice() {
+        [TokenTree::Literal(expr)] => expr_to_string(expr),
+        _ => None,
+    }
 }
 
 /// Includes a shader file as a string with dependencies support.
 ///
-/// The file is located relative to the workspace root directory.
+/// By default, the file is located relative to the workspace root directory.
+/// If the `relative-path` feature is enabled, then the file is located relative
+/// to the current file.
 ///
 /// # Panics
 ///
@@ -144,12 +180,31 @@ fn unwrap_string_literal(lit: &Literal) -> String {
 /// ```
 #[proc_macro]
 pub fn include_shader(input: TokenStream) -> TokenStream {
-    let tokens: Vec<_> = input.into_iter().collect();
-    let arg = match tokens.as_slice() {
-        [TokenTree::Literal(lit)] => unwrap_string_literal(lit),
-        _ => panic!("Takes 1 argument and the argument must be a string literal"),
+    let arg = match get_single_string_from_token_stream(input) {
+        Some(string) => string,
+        None => panic!("Takes 1 argument and the argument must be a string literal"),
     };
-    let root_path = resolve_path(&arg);
+
+    #[allow(unused_assignments, unused_mut)]
+    let mut call_parent_dir_path = None;
+
+    #[cfg(feature = "relative-path")]
+    {
+        let mut path = proc_macro::Span::call_site().source_file().path();
+        path.pop();
+        call_parent_dir_path = Some(path);
+    }
+
+    let root_path = match resolve_path(&arg, call_parent_dir_path) {
+        Ok(path) => path,
+        Err(e) => {
+            panic!(
+                r#"An error occured while trying to resolve root shader path: "{}". Error: {}"#,
+                &arg,
+                e
+            )
+        }
+    };
     let mut dependency_graph = DependencyGraph::new();
     let result = process_file(&root_path, &mut dependency_graph);
 
