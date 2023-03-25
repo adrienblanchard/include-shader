@@ -1,17 +1,18 @@
 //! A library to help working with shaders.
 //!
-//! Although this library works on `stable`, your shader files changes might not be detected because
-//! of caching. Therefore, until
+//! Although this library works on `stable`, detection of shader file changes is not 
+//! guaranteed due to caching. Therefore, it is recommended to use `nightly` along with 
+//! the `track-path` feature enabled until the
 //! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html) 
-//! API stabilizes, it is recommended to use the `nightly` toolchain and feature flag
-//! so your shader files are tracked.
+//! API stabilizes.
 //!
 //! ## Optional features
-//! **`nightly`** - Enables nightly APIs like
-//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
-//! for shader files tracking.
-//! 
-//! **`relative-path`** - Causes the macro to resolve files relative to the file in which they are included.
+//! **`relative-path`** - Resolves path relative to the current file instead of relative
+//! to the workspace root directory.
+//!
+//! **`track-path`** - Enables
+//! [`file tracking`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
+//! to ensure detection of shader file changes.
 
 #![cfg_attr(feature = "track-path", feature(track_path))]
 #![cfg_attr(feature = "relative-path", feature(proc_macro_span))]
@@ -115,8 +116,8 @@ fn unwrap_string_literal(lit: &Literal) -> String {
 /// Includes a shader file as a string with dependencies support.
 ///
 /// By default, the file is located relative to the workspace root directory.
-/// If the `relative-path` feature is enabled, then file resolution happens relative
-/// to the current module or shader file instead.
+/// If the `relative-path` feature is enabled, then the file is located relative
+/// to the current file.
 ///
 /// # Panics
 ///
