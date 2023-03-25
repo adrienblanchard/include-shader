@@ -1,9 +1,9 @@
 //! A library to help working with shaders.
 //!
-//! Although this library works on `stable`, detection of shader file changes is not 
-//! guaranteed due to caching. Therefore, it is recommended to use `nightly` along with 
+//! Although this library works on `stable`, detection of shader file changes is not
+//! guaranteed due to caching. Therefore, it is recommended to use `nightly` along with
 //! the `track-path` feature enabled until the
-//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html) 
+//! [`track_path`](https://doc.rust-lang.org/stable/proc_macro/tracked_path/fn.path.html)
 //! API stabilizes.
 //!
 //! ## Optional features
@@ -34,7 +34,7 @@ fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
             path = p.join(path);
         }
     }
-    
+
     canonicalize(&path).unwrap_or_else(|e| {
         panic!(
             "An error occured while trying to resolve path: {:?}. Error: {}",
@@ -77,14 +77,18 @@ fn process_includes(
 
         #[allow(unused_assignments, unused_mut)]
         let mut include_parent_dir_path = None;
-        
-        #[cfg(feature = "relative-path")] {
+
+        #[cfg(feature = "relative-path")]
+        {
             let mut path = source_path.to_path_buf();
             path.pop();
             include_parent_dir_path = Some(path);
         }
-        
-        let include_path = resolve_path(captures.name("file").unwrap().as_str(), include_parent_dir_path);
+
+        let include_path = resolve_path(
+            captures.name("file").unwrap().as_str(),
+            include_parent_dir_path,
+        );
 
         dependency_graph.add_edge(
             source_path.to_string_lossy().to_string(),
@@ -185,7 +189,8 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
     #[allow(unused_assignments, unused_mut)]
     let mut call_parent_dir_path = None;
 
-    #[cfg(feature = "relative-path")] {
+    #[cfg(feature = "relative-path")]
+    {
         let mut path = proc_macro::Span::call_site().source_file().path();
         path.pop();
         call_parent_dir_path = Some(path);
