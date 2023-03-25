@@ -34,7 +34,7 @@ fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
             path = p.join(path);
         }
     }
-
+    
     canonicalize(&path).unwrap_or_else(|e| {
         panic!(
             "An error occured while trying to resolve path: {:?}. Error: {}",
@@ -58,7 +58,7 @@ fn process_file(path: &Path, dependency_graph: &mut DependencyGraph) -> String {
     });
 
     track_file(path);
-    
+
     process_includes(path, content, dependency_graph)
 }
 
@@ -104,13 +104,22 @@ fn process_includes(
     result
 }
 
-fn unwrap_string_literal(lit: &Literal) -> String {
-    let mut repr = lit.to_string();
+fn expr_to_string(expr: &Literal) -> Option<String> {
+    let mut expr = expr.to_string();
+    if !expr.starts_with(r#"""#) || !expr.ends_with(r#"""#) {
+        return None;
+    }
+    expr.remove(0);
+    expr.pop();
+    Some(expr)
+}
 
-    repr.remove(0);
-    repr.pop();
-
-    repr
+fn get_single_string_from_token_stream(token_stream: TokenStream) -> Option<String> {
+    let tokens: Vec<_> = token_stream.into_iter().collect();
+    match tokens.as_slice() {
+        [TokenTree::Literal(expr)] => expr_to_string(expr),
+        _ => None,
+    }
 }
 
 /// Includes a shader file as a string with dependencies support.
@@ -168,10 +177,9 @@ fn unwrap_string_literal(lit: &Literal) -> String {
 /// ```
 #[proc_macro]
 pub fn include_shader(input: TokenStream) -> TokenStream {
-    let tokens: Vec<_> = input.into_iter().collect();
-    let arg = match tokens.as_slice() {
-        [TokenTree::Literal(lit)] => unwrap_string_literal(lit),
-        _ => panic!("Takes 1 argument and the argument must be a string literal"),
+    let arg = match get_single_string_from_token_stream(input) {
+        Some(string) => string,
+        None => panic!("Takes 1 argument and the argument must be a string literal"),
     };
 
     #[allow(unused_assignments, unused_mut)]
