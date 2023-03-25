@@ -38,7 +38,6 @@ impl DependencyGraph {
             ));
         }
 
-        // No cycle exists
         None
     }
 
