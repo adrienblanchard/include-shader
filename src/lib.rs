@@ -24,23 +24,17 @@ use lazy_static::lazy_static;
 use proc_macro::{Literal, TokenStream, TokenTree};
 use regex::Regex;
 use std::fs::{canonicalize, read_to_string};
+use std::io;
 use std::path::{Path, PathBuf};
 
-fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> PathBuf {
+fn resolve_path(path: &str, parent_dir_path: Option<PathBuf>) -> io::Result<PathBuf> {
     let mut path = PathBuf::from(path);
-
     if let Some(p) = parent_dir_path {
         if !path.is_absolute() {
             path = p.join(path);
         }
     }
-
-    canonicalize(&path).unwrap_or_else(|e| {
-        panic!(
-            "An error occured while trying to resolve path: {:?}. Error: {}",
-            path, e
-        )
-    })
+    canonicalize(&path)
 }
 
 fn track_file(_path: &Path) {
@@ -56,9 +50,7 @@ fn process_file(path: &Path, dependency_graph: &mut DependencyGraph) -> String {
             e
         )
     });
-
     track_file(path);
-
     process_includes(path, content, dependency_graph)
 }
 
@@ -74,6 +66,7 @@ fn process_includes(
 
     while let Some(captures) = INCLUDE_RE.captures(&result.clone()) {
         let capture = captures.get(0).unwrap();
+        let file_path = captures.name("file").unwrap().as_str();
 
         #[allow(unused_assignments, unused_mut)]
         let mut include_parent_dir_path = None;
@@ -85,10 +78,16 @@ fn process_includes(
             include_parent_dir_path = Some(path);
         }
 
-        let include_path = resolve_path(
-            captures.name("file").unwrap().as_str(),
-            include_parent_dir_path,
-        );
+        let include_path = match resolve_path(&file_path, include_parent_dir_path) {
+            Ok(path) => path,
+            Err(e) => {
+                panic!(
+                    r#"An error occured while trying to resolve a dependency path: "{}". Error: {}"#,
+                    &file_path,
+                    e
+                )
+            }
+        };
 
         dependency_graph.add_edge(
             source_path.to_string_lossy().to_string(),
@@ -196,7 +195,16 @@ pub fn include_shader(input: TokenStream) -> TokenStream {
         call_parent_dir_path = Some(path);
     }
 
-    let root_path = resolve_path(&arg, call_parent_dir_path);
+    let root_path = match resolve_path(&arg, call_parent_dir_path) {
+        Ok(path) => path,
+        Err(e) => {
+            panic!(
+                r#"An error occured while trying to resolve root shader path: "{}". Error: {}"#,
+                &arg,
+                e
+            )
+        }
+    };
     let mut dependency_graph = DependencyGraph::new();
     let result = process_file(&root_path, &mut dependency_graph);
 
