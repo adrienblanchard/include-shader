@@ -18,8 +18,8 @@ fn includes_file_with_no_include() {
 fn includes_file_with_includes() {
     let shader = include_shader!("tests/shaders/includes.glsl");
 
-    assert!(!shader.contains(r#"#include "./tests/shaders/functions/luminance.glsl"#));
-    assert!(!shader.contains(r#"#include "./tests/shaders/functions/rand.glsl""#));
+    assert!(!shader.contains(r#"#include "tests/shaders/functions/luminance.glsl"#));
+    assert!(!shader.contains(r#"#include "tests/shaders/functions/rand.glsl""#));
     assert!(shader.contains(include_str!("shaders/functions/luminance.glsl")));
     assert!(shader.contains(include_str!("shaders/functions/rand.glsl")));
 }

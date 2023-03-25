@@ -1,7 +1,7 @@
 uniform vec2 u_resolution;
 
-#include "./tests/shaders/functions/luminance.glsl"
-#include "./tests/shaders/functions/rand.glsl"
+#include "tests/shaders/functions/luminance.glsl"
+#include "tests/shaders/functions/rand.glsl"
 
 void main() {
    vec2 st = gl_FragCoord.xy / u_resolution.xy;
